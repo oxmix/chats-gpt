@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatGPT</title>
+</head>
+<body>
+<div style="display: flex; flex-direction: column; align-items: center;">
+    <h2>Set proxy HTTPS</h2>
+    <input type="text" id="setProxy" size="50" style="font-size: 1rem" placeholder="Example: https://user:pass@host:port" />
+    <input type="text" id="setUserAgent" size="50" style="margin: 10px 0; font-size: 1rem" placeholder="Example: Mozilla/5.0 ..." />
+    <div>
+        <button id="saveButton" style="margin: 10px 0; font-size: 1rem">Save and Start</button>
+    </div>
+</div>
+<script>
+  const setProxy = document.getElementById('setProxy');
+  const setUserAgent = document.getElementById('setUserAgent');
+  const saveButton = document.getElementById('saveButton');
+  window.electron.onLoadData((data) => {
+    setProxy.value = data.proxy || '';
+    setUserAgent.value = data.userAgent || '';
+  });
+  saveButton.addEventListener('click', () => {
+    window.electron.saveData({ proxy: setProxy.value, userAgent: setUserAgent.value });
+  });
+</script>
+</body>
+</html>

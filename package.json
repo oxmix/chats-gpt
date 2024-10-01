@@ -1,0 +1,45 @@
+{
+  "name": "chatgpt-electron",
+  "version": "1.0.0",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "com.oxi.chatgpt",
+    "productName": "ChatGPT",
+    "files": [
+      "src/**/*"
+    ],
+    "directories": {
+      "output": "build"
+    },
+    "mac": {
+      "icon": "src/assets/AppIcon.icns",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "icon": "src/assets/AppIcon.icns",
+      "target": [
+        "nsis",
+        "zip"
+      ]
+    },
+    "linux": {
+      "icon": "src/assets/AppIcon.icns",
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm"
+      ]
+    }
+  },
+  "devDependencies": {
+    "electron": "^32.1.2",
+    "electron-builder": "^25.0.5"
+  }
+}
