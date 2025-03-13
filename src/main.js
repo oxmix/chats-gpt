@@ -1,135 +1,49 @@
-const {app, Menu, screen, BrowserWindow, session, ipcMain, dialog, shell} = require('electron');
-const fs = require('fs');
+const {
+  app,
+  BrowserWindow,
+  BrowserView,
+  ipcMain,
+  screen,
+  Menu,
+  dialog,
+  session,
+  shell,
+  globalShortcut
+} = require('electron');
 const path = require('path');
+const fs = require("fs");
+
+let win;
+let activeView;
+
+const views = [
+  {
+    url: 'https://chatgpt.com',
+    proxy: true,
+    view: null,
+  }, {
+    url: 'https://grok.com',
+    proxy: true,
+    view: null,
+  }, {
+    url: 'https://chat.deepseek.com',
+    proxy: false,
+    view: null,
+  }, {
+    url: 'https://chat.qwen.ai',
+    proxy: false,
+    view: null,
+  },
+]
 
 const userDataPath = app.getPath('userData')
-const settingsFile = path.join(userDataPath, 'data.json')
-
-let win
-
-function runGpt(data, alert) {
-  if (!data.userAgent) {
-    if (alert) {
-      dialog.showErrorBox('Error', 'User agent not set');
-    }
-    return false
-  }
-
-  session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
-    details.requestHeaders['User-Agent'] = data.userAgent;
-    callback({requestHeaders: details.requestHeaders});
-  });
-
-  let proxy
-  try {
-    if (!data.proxy) {
-      if (alert) {
-        dialog.showErrorBox('Error', 'Proxy not set');
-      }
-      return false
-    }
-    const url = new URL(data.proxy.trim());
-    proxy = {user: url.username, pass: url.password, host: url.hostname, port: url.port}
-  } catch (err) {
-    console.error('Error parsing the URL:', err);
-
-    dialog.showErrorBox('Error parsing the URL', err.toString());
-    return false
-  }
-
-  session.defaultSession.setProxy({
-    proxyRules: `https://${proxy.host}:${proxy.port}`
-  }).then(() => {
-    win.loadURL('https://chatgpt.com');
-
-    // custom search cmd/ctrl+f
-    ipcMain.on('start-search', (event, text, direction) => {
-      if (!win || !text.length) {
-        return
-      }
-      let opts = {}
-      if (direction === 'forward') {
-        opts.forward = direction === 'forward'
-      }
-      win.webContents.findInPage(text, opts);
-    });
-
-    ipcMain.on('stop-search', () => {
-      if (win) {
-        win.webContents.stopFindInPage('clearSelection');
-      }
-    });
-
-    win.webContents.on('did-finish-load', () => {
-      win.webContents.executeJavaScript(`
-      window.addEventListener("keydown", e => {
-        if ((e.ctrlKey || e.metaKey) && e.key === "f") {
-          e.preventDefault();
-          let searchBar = document.getElementById("customSearchBar");
-          if (searchBar) {
-            return
-          }
-          searchBar = document.createElement('div');
-          searchBar.innerHTML = \`
-            <input type="text" id="searchInput" placeholder="Search..." style="width: 200px; padding: 5px; color: #333 !important;">
-            <button id="nextButton" style="padding: 5px 10px; background: rgba(255, 255, 255, 0.5); margin-left: 8px; color: #333;">></button>
-            <button id="previousButton" style="padding: 5px 10px; background: rgba(255, 255, 255, 0.5); margin-left: 8px; color: #333;"><</button>
-            <button id="closeSearch" style="padding: 5px 10px; background: rgba(255, 255, 255, 0.5); margin-left: 8px; color: #333;">×</button>
-            <div style="color: #333;padding: 6px 0 0;">Found: <span id="found-in-page">–</span></div>
-          \`;
-          searchBar.style.cssText = 'position: fixed;top: 26px;background: rgba(255, 255, 255, .8);border-radius: 12px;padding: 16px 18px;z-index: 1000000;left: 0;right: 0;width: 365px;margin: auto;';
-          searchBar.id = 'customSearchBar';
-          document.body.appendChild(searchBar);
-          const input = document.getElementById('searchInput');
-          input.focus();
-          input.addEventListener('keydown', ev => {
-            if (13 == ev.keyCode) {
-                window.electron.startSearch(input.value);
-            }
-          });
-          document.getElementById('nextButton').addEventListener('click', () => {
-            window.electron.startSearch(input.value, 'forward');
-          });
-          document.getElementById('previousButton').addEventListener('click', () => {
-            window.electron.startSearch(input.value, 'back');
-          });
-          document.getElementById('closeSearch').addEventListener('click', () => {
-            searchBar.remove();
-            window.electron.stopSearch();
-          });
-        }
-      });`);
-    });
-
-    win.webContents.on('found-in-page', (event, result) => {
-      win.webContents.executeJavaScript(`
-        document.getElementById('found-in-page').innerText = ` + (result.matches - 1) + `;
-      `)
-    });
-  });
-
-  // handler links
-  win.webContents.setWindowOpenHandler(({url}) => {
-    shell.openExternal(url).then();
-    return {action: 'deny'};
-  });
-
-  // check auth proxy
-  win.webContents.on('login', (event, request, authInfo, callback) => {
-    event.preventDefault();
-
-    console.log("Is auth proxy:", authInfo.isProxy)
-    if (authInfo.isProxy) {
-      callback(proxy.user, proxy.pass);
-    } else {
-      callback();
-    }
-  });
-
-  return true
-}
+const settingsFile = path.join(userDataPath, 'settings.json')
 
 async function createWindow() {
+  if (!fs.existsSync(settingsFile)) {
+    fs.writeFileSync(settingsFile, JSON.stringify({}));
+  }
+
   const {width, height} = screen.getPrimaryDisplay().workAreaSize;
 
   win = new BrowserWindow({
@@ -150,25 +64,209 @@ async function createWindow() {
     }
   });
 
-  if (fs.existsSync(settingsFile)) {
-    const data = fs.readFileSync(settingsFile);
-    if (runGpt(JSON.parse(data), false)) {
-      return
-    }
-  }
+  await win.loadFile(path.join(__dirname, 'app.html'))
 
-  await win.loadFile(path.join(__dirname, 'index.html'))
-  win.webContents.send('load-data', {
-    proxy: '',
-    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.6613.162 Safari/537.36'
+  win.on('resize', () => {
+    if (activeView) {
+      const [width, height] = win.getSize();
+      activeView.setBounds({x: 0, y: 50, width: width, height: height - 80});
+    }
+  });
+
+  const focus = () => {
+    globalShortcut.register('CommandOrControl+F', () => {
+      if (activeView) {
+        win.webContents.send('focus-search')
+      }
+    })
+    // intercept F5
+    globalShortcut.register('F5', () => {
+      if (activeView) {
+        activeView.webContents.reload()
+      }
+    })
+    // intercept Cmd+R (macOS) or Ctrl+R (Windows/Linux)
+    globalShortcut.register('CommandOrControl+R', () => {
+      if (activeView) {
+        activeView.webContents.reload()
+      }
+    })
+  }
+  focus()
+  win.on('focus', focus)
+  win.on('blur', () => {
+    globalShortcut.unregisterAll()
+  })
+
+  runGpt()
+}
+
+function switchTab(tabNumber) {
+  console.log("click tab:", tabNumber)
+  const [width, height] = win.getSize()
+
+  if (activeView) {
+    activeView.setBounds({x: 0, y: -1e6, width: 0, height: 0});
+  }
+  views[tabNumber].view.setBounds({x: 0, y: 50, width: width, height: height - 80})
+  activeView = views[tabNumber].view
+}
+
+function setHeadersForView(view, userAgent) {
+  userAgent = userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0.6613.162';
+  view.webContents.setUserAgent(userAgent);
+
+  view.webContents.session.webRequest.onBeforeSendHeaders((details, callback) => {
+    details.requestHeaders['User-Agent'] = userAgent;
+    callback({ cancel: false, requestHeaders: details.requestHeaders });
   })
 }
 
+function disableWebRTC(view) {
+  view.webContents.session.setPermissionRequestHandler((webContents, permission, callback) => {
+    if (permission === 'media') {
+      callback(false);
+    } else {
+      callback(true);
+    }
+  })
+}
+
+function setProxyForView(view) {
+  const ses = view.view.webContents.session;
+  let proxy
+  try {
+    const url = new URL(view.proxy.trim());
+    proxy = {type: url.protocol, user: url.username, pass: url.password, host: url.hostname, port: url.port}
+  } catch (err) {
+    console.error('Error parsing the URL:', err);
+
+    dialog.showErrorBox('Error parsing the URL', err.toString());
+    return false
+  }
+
+  view.view.webContents.on('login', (event, request, authInfo, callback) => {
+    event.preventDefault();
+    console.log("Is auth proxy:", authInfo.isProxy);
+    if (authInfo.isProxy) {
+      console.log(`Providing credentials for tab ${view.url}: ${proxy.user}`);
+      callback(proxy.user, proxy.pass)
+    } else {
+      callback()
+    }
+  });
+
+  console.log(`${proxy.type}//${proxy.host}:${proxy.port}`)
+
+  return ses.setProxy({
+    proxyRules: `${proxy.type}//${proxy.host}:${proxy.port}`
+  }).then(() => {
+    console.log(`Proxy set for view: ${proxy.type}://${proxy.host}:${proxy.port}`);
+    return view.view.webContents.loadURL(view.url)
+  }).catch(err => {
+    console.error('Failed proxy:', err);
+    dialog.showErrorBox('Failed proxy:', err.toString());
+  })
+}
+
+function runGpt() {
+  const data = JSON.parse(fs.readFileSync(settingsFile));
+  const {width, height} = screen.getPrimaryDisplay().workAreaSize;
+
+  views.forEach((e, k) => {
+    e.view = new BrowserView({webPreferences: {session: session.fromPartition('persist:view' + k)}})
+    e.view.setBounds({x: 0, y: 50, width: width * 0.6, height: (height * 0.7) - 80})
+    win.addBrowserView(e.view)
+    setHeadersForView(e.view, data.userAgent)
+    disableWebRTC(e.view)
+    e.view.setBackgroundColor('white')
+
+    if (e.proxy && data.proxy) {
+      e.proxy = data.proxy
+      setProxyForView(e)
+    } else {
+      e.view.webContents.loadURL(e.url)
+    }
+
+    // handler links
+    e.view.webContents.setWindowOpenHandler(({url}) => {
+      shell.openExternal(url).then();
+      return {action: 'deny'};
+    });
+
+    if (k === 0) {
+      activeView = views[0].view
+    } else {
+      e.view.setBounds({x: 0, y: -1e6, width: 0, height: 0})
+    }
+  })
+
+  return true
+}
+
+ipcMain.on('switch-tab', (event, tabNumber) => {
+  switchTab(tabNumber);
+})
+
+ipcMain.on('open-settings', (event) => {
+  const winSettings = new BrowserWindow({
+    width: Math.floor(600),
+    height: Math.floor(360),
+    icon: path.join(__dirname, 'assets', 'AppIcon.icns'),
+    webPreferences: {
+      devtools: true,
+      nodeIntegration: false,
+      webviewTag: false,
+      sandbox: true,
+      allowRunningInsecureContent: true,
+      offscreen: false,
+      webSecurity: false,
+      enableRemoteModule: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js'),
+    }
+  });
+
+  const data = JSON.parse(fs.readFileSync(settingsFile));
+  winSettings.webContents.send('load-data', {
+    proxy: data.proxy || '',
+    userAgent: data.userAgent || ''
+  })
+
+  winSettings.loadFile(path.join(__dirname, 'settings.html'))
+})
+
+ipcMain.on('open-github', (event) => {
+  shell.openExternal('https://github.com/oxmix/chats-gpt').then()
+})
+
+ipcMain.on('start-search', (event, text, direction) => {
+  if (!activeView || !text.length) {
+    return
+  }
+  console.log('start-search:', text)
+  let opts = {}
+  if (direction === 'forward') {
+    opts.forward = direction === 'forward'
+  }
+  activeView.webContents.findInPage(text, opts);
+
+  activeView.webContents.on('found-in-page', (event, result) => {
+    win.webContents.send('found-in-page', result.matches);
+  });
+});
+
+ipcMain.on('stop-search', () => {
+  if (activeView) {
+    activeView.webContents.stopFindInPage('clearSelection');
+  }
+});
 
 ipcMain.on('save-data', (event, data) => {
   fs.writeFileSync(settingsFile, JSON.stringify(data));
-  runGpt(data, true)
-});
+  app.relaunch()
+  app.quit()
+})
 
 app.whenReady().then(() => {
   const template = [
@@ -239,3 +337,7 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => app.quit());
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
+});

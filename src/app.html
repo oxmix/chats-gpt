@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>ChatsGPT</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #1d1e20;
+        }
+
+        .tab-bar {
+            height: 50px;
+            display: flex;
+        }
+
+        .tab-bar > div {
+            display: flex;
+            gap: 8px;
+            padding: 8px;
+        }
+
+        .tab-bar > .chats {
+            flex-grow: 1;
+        }
+
+        .tab-button {
+            padding: 8px 16px;
+            border: none;
+            background: rgba(255, 255, 255, .1);
+            cursor: pointer;
+            color: white;
+            border-radius: 8px;
+        }
+
+        .tab-button:hover {
+            background: rgba(255, 255, 255, .2);
+            color: white;
+        }
+
+        .tab-button.active {
+            background: rgba(255, 255, 255, .3);
+            color: white;
+        }
+
+        input {
+            background-color: rgba(255, 255, 255, .1);
+            padding: 8px 16px;
+            border: none;
+            color: white;
+            border-radius: 8px;
+            width: 200px;
+            box-sizing: border-box;
+        }
+
+        :focus {
+            outline: 2px solid rgba(255, 255, 255, .3);
+        }
+    </style>
+</head>
+<body>
+<div class="tab-bar">
+    <div class="chats">
+        <button class="tab-button active" onclick="window.electron.switchTab(0)">OpenAI</button>
+        <button class="tab-button" onclick="window.electron.switchTab(1)">Grok</button>
+        <button class="tab-button" onclick="window.electron.switchTab(2)">Deepseek</button>
+        <button class="tab-button" onclick="window.electron.switchTab(3)">Qwen</button>
+    </div>
+    <div id="searchBar" style="display: none">
+        <input id="searchInput" type="text" placeholder="Search...">
+        <button id="previousButton" class="tab-button"><</button>
+        <button id="nextButton" class="tab-button">></button>
+        <button id="closeSearch" class="tab-button">×</button>
+        <button class="tab-button" disabled style="cursor: default">Found: <span id="found-in-page">–</span></button>
+    </div>
+    <div style="flex-grow: 1"></div>
+    <div>
+        <button class="tab-button" onclick="window.electron.openSettings()">Settings</button>
+        <button class="tab-button" onclick="window.electron.openGithub()">Github</button>
+    </div>
+</div>
+
+<script>
+  const buttons = document.querySelectorAll('.chats .tab-button');
+  buttons.forEach(button => {
+    button.addEventListener('click', () => {
+      buttons.forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+    });
+  });
+
+  const input = document.getElementById('searchInput');
+  window.electron.on('focus-search', () => {
+    document.getElementById('searchBar').style.display = 'flex'
+    input.focus();
+  });
+  window.electron.on('found-in-page', (_, count) => {
+    document.getElementById('found-in-page').innerText = count
+  });
+  input.addEventListener('keydown', ev => {
+    if (13 === ev.keyCode) {
+      window.electron.startSearch(input.value);
+    }
+  });
+  document.getElementById('nextButton').addEventListener('click', () => {
+    window.electron.startSearch(input.value, 'forward');
+  });
+  document.getElementById('previousButton').addEventListener('click', () => {
+    window.electron.startSearch(input.value, 'back');
+  });
+  document.getElementById('closeSearch').addEventListener('click', () => {
+    document.getElementById('searchBar').style.display = 'none';
+    window.electron.stopSearch();
+  });
+</script>
+</body>
+</html>

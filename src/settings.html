@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings</title>
+    <style>
+        body {
+            background-color: #1d1e20;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            margin: 16px;
+        }
+
+        input, button {
+            border-radius: 8px;
+            padding: 8px;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+<h2 style="margin: 0">Settings</h2>
+
+<div style="margin: 18px 0 3px;">Proxy HTTPS <span style="opacity: .5">if necessary</span></div>
+<input type="text" id="setProxy" size="50" style="margin: 10px 0; font-size: 1rem" placeholder="Example: https://user:pass@host:port" />
+
+<div style="margin: 18px 0 3px;">User agent <span style="opacity: .5">if necessary</span></div>
+<input type="text" id="setUserAgent" size="50" style="margin: 10px 0; font-size: 1rem" placeholder="Example: Mozilla/5.0 ..." />
+
+<div>
+    <button id="saveButton" style="margin: 10px 0; font-size: 1rem; cursor: pointer">Save and Restart</button>
+</div>
+<script>
+  const setProxy = document.getElementById('setProxy');
+  const setUserAgent = document.getElementById('setUserAgent');
+  const saveButton = document.getElementById('saveButton');
+  window.electron.onLoadData((data) => {
+    setProxy.value = data.proxy || '';
+    setUserAgent.value = data.userAgent || '';
+  });
+  saveButton.addEventListener('click', () => {
+    window.electron.saveData({proxy: setProxy.value, userAgent: setUserAgent.value});
+  });
+</script>
+</body>
+</html>

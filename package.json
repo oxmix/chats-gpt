@@ -1,36 +1,47 @@
 {
-  "name": "chatgpt-electron",
-  "version": "1.1.0",
+  "name": "chats-gpt",
+  "version": "1.2.0",
   "main": "src/main.js",
+  "description": "Multiple Chats GPT with support proxy http/https",
+  "author": {
+    "name": "Oxi",
+    "email": "oxmix@me.com"
+  },
   "scripts": {
     "start": "electron .",
     "build": "electron-builder"
   },
   "build": {
-    "appId": "com.oxi.chatgpt",
-    "productName": "ChatGPT",
+    "appId": "com.oxi.chats-gpt",
+    "productName": "ChatsGPT",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "oxmix",
+        "repo": "chats-gpt"
+      }
+    ],
     "files": [
       "src/**/*"
     ],
     "directories": {
-      "output": "build"
+      "output": "dist"
     },
     "mac": {
       "icon": "src/assets/AppIcon.icns",
       "target": [
-        "dmg",
-        "zip"
+        "dmg"
       ]
     },
     "win": {
-      "icon": "src/assets/AppIcon.icns",
+      "icon": "src/assets/IconCircle.png",
       "target": [
         "nsis",
-        "zip"
+        "portable"
       ]
     },
     "linux": {
-      "icon": "src/assets/AppIcon.icns",
+      "icon": "src/assets/IconCircle.png",
       "target": [
         "AppImage",
         "deb",
@@ -39,7 +50,7 @@
     }
   },
   "devDependencies": {
-    "electron": "^34.1.1",
-    "electron-builder": "^26.0.6"
+    "electron": "^35.0.1",
+    "electron-builder": "^26.0.11"
   }
 }
