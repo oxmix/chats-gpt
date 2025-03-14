@@ -38,6 +38,6 @@ jobs:
 
       - name: Build for Linux
         if: matrix.os == 'ubuntu-latest'
-        run: npm run build -- --linux
+        run: sudo chmod 4755 node_modules/electron/dist/chrome-sandbox && npm run build -- --linux
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
