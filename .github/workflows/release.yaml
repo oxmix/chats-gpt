@@ -36,8 +36,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build for Linux
+      - name: Build Docker image for Linux
         if: matrix.os == 'ubuntu-latest'
-        run: npm run build -- --linux
+        run: docker build -t electron-builder-image .github
+
+      - name: Build for Linux inside Docker
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          docker run --rm -v $(pwd):/app electron-builder-image bash -c "npm install && npm run build -- --linux"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
