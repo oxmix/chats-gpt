@@ -24,20 +24,22 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build for macOS (Universal)
-        if: matrix.os == 'macos-latest'
-        run: npm run build -- --mac --universal
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build for Windows
-        if: matrix.os == 'windows-latest'
-        run: npm run build -- --win
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build for Linux
+      - name: Build for Linux inside Docker
         if: matrix.os == 'ubuntu-latest'
-        run: npm run build -- --linux
+        run: |
+          docker build -t electron-builder-image .github
+          docker run --rm -v $(pwd):/app electron-builder-image bash -c "npm install && npm run build -- --linux"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fix permissions for artifacts
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo chown -R $USER:$USER dist
+
+      - name: Upload AppImage to release
+        if: matrix.os == 'ubuntu-latest'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*.AppImage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

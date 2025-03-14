@@ -211,7 +211,7 @@ ipcMain.on('switch-tab', (event, tabNumber) => {
 ipcMain.on('open-settings', (event) => {
   const winSettings = new BrowserWindow({
     width: Math.floor(600),
-    height: Math.floor(360),
+    height: Math.floor(380),
     icon: path.join(__dirname, 'assets', 'AppIcon.icns'),
     webPreferences: {
       devtools: true,
@@ -273,6 +273,12 @@ app.whenReady().then(() => {
     {
       label: 'Menu',
       submenu: [
+        {
+          label: 'About',
+          click: () => {
+            app.showAboutPanel();
+          }
+        },
         {
           label: 'Delete settings (reset proxy)',
           click: () => {
