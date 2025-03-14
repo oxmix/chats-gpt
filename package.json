@@ -1,6 +1,6 @@
 {
   "name": "chats-gpt",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "main": "src/main.js",
   "description": "Multiple Chats GPT with support proxy http/https",
   "author": {
@@ -27,6 +27,7 @@
     "directories": {
       "output": "dist"
     },
+    "afterPack": "./.github/after-pack.js",
     "mac": {
       "icon": "src/assets/AppIcon.icns",
       "target": [
@@ -41,11 +42,10 @@
       ]
     },
     "linux": {
+      "category": "Network",
       "icon": "src/assets/IconCircle.png",
       "target": [
-        "AppImage",
-        "deb",
-        "rpm"
+        "AppImage"
       ]
     }
   },
