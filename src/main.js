@@ -118,7 +118,7 @@ function setHeadersForView(view, userAgent) {
 
   view.webContents.session.webRequest.onBeforeSendHeaders((details, callback) => {
     details.requestHeaders['User-Agent'] = userAgent;
-    callback({ cancel: false, requestHeaders: details.requestHeaders });
+    callback({cancel: false, requestHeaders: details.requestHeaders});
   })
 }
 
@@ -174,7 +174,13 @@ function runGpt() {
   const {width, height} = screen.getPrimaryDisplay().workAreaSize;
 
   views.forEach((e, k) => {
-    e.view = new BrowserView({webPreferences: {session: session.fromPartition('persist:view' + k)}})
+    e.view = new BrowserView({
+      webPreferences: {
+        session: session.fromPartition('persist:view' + k),
+        contextIsolation: true,
+        sandbox: true
+      }
+    })
     e.view.setBounds({x: 0, y: 50, width: width * 0.6, height: (height * 0.7) - 80})
     win.addBrowserView(e.view)
     setHeadersForView(e.view, data.userAgent)
@@ -211,7 +217,7 @@ ipcMain.on('switch-tab', (event, tabNumber) => {
 ipcMain.on('open-settings', (event) => {
   const winSettings = new BrowserWindow({
     width: Math.floor(600),
-    height: Math.floor(360),
+    height: Math.floor(400),
     icon: path.join(__dirname, 'assets', 'AppIcon.icns'),
     webPreferences: {
       devtools: true,
@@ -273,6 +279,12 @@ app.whenReady().then(() => {
     {
       label: 'Menu',
       submenu: [
+        {
+          label: 'About',
+          click: () => {
+            app.showAboutPanel();
+          }
+        },
         {
           label: 'Delete settings (reset proxy)',
           click: () => {

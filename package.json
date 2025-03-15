@@ -1,12 +1,13 @@
 {
   "name": "chats-gpt",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "main": "src/main.js",
   "description": "Multiple Chats GPT with support proxy http/https",
   "author": {
     "name": "Oxi",
     "email": "oxmix@me.com"
   },
+  "homepage": "https://github.com/oxmix/chats-gpt",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder"
@@ -41,11 +42,13 @@
       ]
     },
     "linux": {
+      "category": "Network",
       "icon": "src/assets/IconCircle.png",
       "target": [
         "AppImage",
         "deb",
-        "rpm"
+        "rpm",
+        "pacman"
       ]
     }
   },

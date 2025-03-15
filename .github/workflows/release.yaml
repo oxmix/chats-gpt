@@ -36,6 +36,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install dependencies for Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y libarchive-tools
+
       - name: Build for Linux
         if: matrix.os == 'ubuntu-latest'
         run: npm run build -- --linux

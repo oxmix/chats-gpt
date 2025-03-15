@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/html">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +10,7 @@
             color: white;
             display: flex;
             flex-direction: column;
-            margin: 16px;
+            margin: 16px 16px 0;
         }
 
         input, button {
@@ -23,11 +23,12 @@
 <body>
 <h2 style="margin: 0">Settings</h2>
 
-<div style="margin: 18px 0 3px;">Proxy HTTPS <span style="opacity: .5">if necessary</span></div>
+<div style="margin: 18px 0 3px;">Proxy HTTPS, only OpenAI and Grok <span style="opacity: .5">if necessary</span></div>
 <input type="text" id="setProxy" size="50" style="margin: 10px 0; font-size: 1rem" placeholder="Example: https://user:pass@host:port" />
 
 <div style="margin: 18px 0 3px;">User agent <span style="opacity: .5">if necessary</span></div>
 <input type="text" id="setUserAgent" size="50" style="margin: 10px 0; font-size: 1rem" placeholder="Example: Mozilla/5.0 ..." />
+<div style="margin: 5px 0 10px;">If empty, used: <span style="opacity: .5;">Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0.6613.162</span></div>
 
 <div>
     <button id="saveButton" style="margin: 10px 0; font-size: 1rem; cursor: pointer">Save and Restart</button>
