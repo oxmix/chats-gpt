@@ -34,6 +34,16 @@ const views = [
     proxy: false,
     view: null,
   },
+  {
+    url: 'https://www.perplexity.ai',
+    proxy: false,
+    view: null,
+  },
+   {
+    url: 'https://lmarena.ai',
+    proxy: false,
+    view: null,
+  },
 ]
 
 const userDataPath = app.getPath('userData')
