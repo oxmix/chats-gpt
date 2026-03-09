@@ -1,7 +1,7 @@
 const {
   app,
   BrowserWindow,
-  BrowserView,
+  WebContentsView,
   ipcMain,
   screen,
   Menu,
@@ -18,6 +18,10 @@ let activeView;
 
 const views = [
   {
+    url: 'https://claude.ai',
+    proxy: true,
+    view: null,
+  }, {
     url: 'https://chatgpt.com',
     proxy: true,
     view: null,
@@ -33,13 +37,11 @@ const views = [
     url: 'https://chat.qwen.ai',
     proxy: false,
     view: null,
-  },
-  {
+  }, {
     url: 'https://www.perplexity.ai',
     proxy: false,
     view: null,
-  },
-   {
+  }, {
     url: 'https://lmarena.ai',
     proxy: false,
     view: null,
@@ -112,14 +114,25 @@ async function createWindow() {
 }
 
 function switchTab(tabNumber) {
-  console.log("click tab:", tabNumber)
-  const [width, height] = win.getSize()
+  console.log('click tab:', tabNumber)
 
-  if (activeView) {
-    activeView.setBounds({x: 0, y: -1e6, width: 0, height: 0});
+  const [width, height] = win.getSize()
+  const nextView = views[tabNumber]?.view
+  if (!nextView) return
+
+  if (activeView && activeView !== nextView) {
+    win.contentView.removeChildView(activeView)
   }
-  views[tabNumber].view.setBounds({x: 0, y: 50, width: width, height: height - 80})
-  activeView = views[tabNumber].view
+
+  nextView.setBounds({
+    x: 0,
+    y: 50,
+    width: width,
+    height: height - 80
+  })
+
+  win.contentView.addChildView(nextView)
+  activeView = nextView
 }
 
 function setHeadersForView(view, userAgent) {
@@ -179,20 +192,53 @@ function setProxyForView(view) {
   })
 }
 
+function blockMicrophone(ses) {
+  ses.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
+    if (permission === 'media' && details?.mediaType === 'audio') {
+      return false
+    }
+    return true
+  })
+
+  ses.setPermissionRequestHandler((webContents, permission, callback, details) => {
+    if (permission === 'media' && details?.mediaType === 'audio') {
+      return callback(false)
+    }
+    callback(true)
+  })
+}
+
+
 function runGpt() {
-  const data = JSON.parse(fs.readFileSync(settingsFile));
-  const {width, height} = screen.getPrimaryDisplay().workAreaSize;
+  const data = JSON.parse(fs.readFileSync(settingsFile))
+  const {width, height} = screen.getPrimaryDisplay().workAreaSize
 
   views.forEach((e, k) => {
-    e.view = new BrowserView({
+    const ses = session.fromPartition('persist:view' + k)
+
+    blockMicrophone(ses)
+
+    e.view = new WebContentsView({
       webPreferences: {
-        session: session.fromPartition('persist:view' + k),
+        session: ses,
         contextIsolation: true,
-        sandbox: true
+        sandbox: true,
+        backgroundThrottling: true
       }
     })
-    e.view.setBounds({x: 0, y: 50, width: width * 0.6, height: (height * 0.7) - 80})
-    win.addBrowserView(e.view)
+
+    e.view.setBounds({
+      x: 0,
+      y: 50,
+      width: Math.floor(width * 0.6),
+      height: Math.floor(height * 0.7) - 80
+    })
+
+    if (k === 0) {
+      win.contentView.addChildView(e.view)
+      activeView = e.view
+    }
+
     setHeadersForView(e.view, data.userAgent)
     disableWebRTC(e.view)
     e.view.setBackgroundColor('white')
@@ -204,17 +250,10 @@ function runGpt() {
       e.view.webContents.loadURL(e.url)
     }
 
-    // handler links
     e.view.webContents.setWindowOpenHandler(({url}) => {
-      shell.openExternal(url).then();
-      return {action: 'deny'};
-    });
-
-    if (k === 0) {
-      activeView = views[0].view
-    } else {
-      e.view.setBounds({x: 0, y: -1e6, width: 0, height: 0})
-    }
+      shell.openExternal(url).then()
+      return {action: 'deny'}
+    })
   })
 
   return true
